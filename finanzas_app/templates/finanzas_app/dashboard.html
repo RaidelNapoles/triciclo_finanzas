@@ -1,0 +1,177 @@
+{% extends 'finanzas_app/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Estadísticas principales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Recaudado</h5>
+                    <h2 class="card-text">${{ estadisticas.total_recaudado|floatformat:2|intcomma }}</h2>
+                    <p class="card-text">{{ estadisticas.dias_registrados }} días registrados</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Promedio Diario</h5>
+                    <h2 class="card-text">${{ estadisticas.promedio_diario|floatformat:2|intcomma }}</h2>
+                    <p class="card-text">Por día de trabajo</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Mejor Día</h5>
+                    {% if estadisticas.mejor_dia %}
+                    <h2 class="card-text">${{ estadisticas.mejor_dia.monto|floatformat:2|intcomma }}</h2>
+                    <p class="card-text">{{ estadisticas.mejor_dia.fecha|date:"d/m/Y" }}</p>
+                    {% else %}
+                    <p class="card-text">No hay datos</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Peor Día</h5>
+                    {% if estadisticas.peor_dia %}
+                    <h2 class="card-text">${{ estadisticas.peor_dia.monto|floatformat:2|intcomma }}</h2>
+                    <p class="card-text">{{ estadisticas.peor_dia.fecha|date:"d/m/Y" }}</p>
+                    {% else %}
+                    <p class="card-text">No hay datos</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="grafico-container">
+                {% if grafico_dia_semana %}
+                <img src="data:image/png;base64,{{ grafico_dia_semana }}" class="img-fluid" alt="Gráfico días semana">
+                {% else %}
+                <p class="text-muted">No hay datos para mostrar</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="grafico-container">
+                {% if grafico_promedio_dia_semana %}
+                <img src="data:image/png;base64,{{ grafico_promedio_dia_semana }}" class="img-fluid" alt="Gráfico promedio días semanas">
+                {% else %}
+                <p class="text-muted">No hay datos para mostrar</p>
+                {% endif %}
+            </div>
+        </div>
+    </div> 
+
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="grafico-container">
+                {% if grafico_semana %}
+                <img src="data:image/png;base64,{{ grafico_semana }}" class="img-fluid" alt="Gráfico semanas">
+                {% else %}
+                <p class="text-muted">No hay datos para mostrar</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="grafico-container">
+                {% if grafico_mes %}
+                <img src="data:image/png;base64,{{ grafico_mes }}" class="img-fluid" alt="Gráfico meses">
+                {% else %}
+                <p class="text-muted">No hay datos para mostrar</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablas de datos -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recaudación por Día de la Semana</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Día</th>
+                                <th>Promedio</th>
+                                <th>Total</th>
+                                <th>Días</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dia, datos in por_dia_semana.items %}
+                            <tr>
+                                <td>{{ dia }}</td>
+                                <td>${{ datos.promedio|floatformat:2|intcomma }}</td>
+                                <td>${{ datos.total|floatformat:2|intcomma }}</td>
+                                <td>{{ datos.count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Últimos Registros</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Día</th>
+                                <th>Monto</th>
+                                <th>Semana</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for registro in ultimos_registros %}
+                            <tr>
+                                <td>{{ registro.fecha|date:"d/m/Y" }}</td>
+                                <td>{{ registro.dia_semana }}</td>
+                                <td>${{ registro.monto|floatformat:2|intcomma }}</td>
+                                <td>Semana {{ registro.numero_semana }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">No hay registros</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón para agregar registro -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <a href="{% url 'finanzas_app:dashboard' %}" class="btn btn-success btn-lg">
+                ➕ Agregar Registro de Hoy
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
