@@ -1,0 +1,468 @@
+<!-- ingresos/templates/ingresos/tabla_semanal.html -->
+{% extends 'finanzas_app/base.html' %}
+{% load humanize %}
+{% load custom_filters %}
+
+{% block title %}Tabla Semanal de Ingresos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-0">
+                <i class="fas fa-table me-2"></i>
+                TABLA SEMANAL DE INGRESOS
+            </h1>
+            <p class="text-muted mb-0">
+                Visualización tabular por semana y día de la semana
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'finanzas_app:dashboard' %}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-arrow-left me-1"></i> Volver al Dashboard
+            </a>
+            {% comment %} <a href="{% url 'finanzas_app:exportar_tabla_excel' %}" class="btn btn-success">
+                <i class="fas fa-file-excel me-1"></i> Exportar a Excel
+            </a> {% endcomment %}
+        </div>
+    </div>
+    
+    <!-- Resumen Estadístico -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">TOTAL GENERAL</h6>
+                    <h3 class="text-primary fw-bold">${{ datos_tabla.total_general|floatformat:2|intcomma }}</h3>
+                    <small class="text-muted">{{ datos_tabla.dias_registrados }} días registrados</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">PROMEDIO DIARIO</h6>
+                    <h3 class="text-success fw-bold">${{ datos_tabla.promedio_diario|floatformat:2|intcomma }}</h3>
+                    <small class="text-muted">Por día trabajado</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">SEMANAS REGISTRADAS</h6>
+                    <h3 class="text-info fw-bold">{{ datos_tabla.semanas|length }}</h3>
+                    <small class="text-muted">Desde semana {{ datos_tabla.semanas|first|default:0 }} hasta {{ datos_tabla.semanas|last|default:0 }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">MEJOR DÍA</h6>
+                    {% with mejor_dia=estadisticas.mejor_dia %}
+                    {% if mejor_dia %}
+                    <h3 class="text-warning fw-bold">${{ mejor_dia.monto|floatformat:2|intcomma }}</h3>
+                    <small class="text-muted">{{ mejor_dia.fecha|date:"d/m/Y" }}</small>
+                    {% else %}
+                    <p class="text-muted mb-0">Sin datos</p>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabla Principal -->
+    <div class="card shadow-lg">
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                <table class="table table-bordered table-hover mb-0">
+                    <!-- Encabezado de la tabla -->
+                    <thead class="table-light sticky-top" style="top: 0; z-index: 1;">
+                        <tr>
+                            <th class="text-center align-middle bg-primary text-white" style="width: 100px;">
+                                <i class="fas fa-calendar-week"></i><br>
+                                SEMANA
+                            </th>
+                            {% for dia in datos_tabla.dias %}
+                            <th class="text-center align-middle {% if dia in 'Sábado,Domingo' %}bg-warning{% else %}bg-info text-white{% endif %}" style="min-width: 120px;">
+                                {{ dia|upper }}
+                            </th>
+                            {% endfor %}
+                            <th class="text-center align-middle bg-success text-white" style="min-width: 140px;">
+                                <i class="fas fa-calculator"></i><br>
+                                TOTAL SEMANA
+                            </th>
+                            
+                        </tr>
+                    </thead>
+                    
+                    <!-- Cuerpo de la tabla -->
+                    <tbody>
+                        {% for semana_num in datos_tabla.semanas %}
+                        {% with semana_data=datos_tabla.tabla|dict_key:semana_num total_semana=datos_tabla.totales_semanas|dict_key:semana_num %}
+                        <tr class="{% cycle '' 'table-light' %}">
+                            <!-- Columna Semana -->
+                            <td class="text-center align-middle fw-bold" style="background-color: #f8f9fa;">
+                                <div class="d-flex flex-column align-items-center">
+                                    <span class="badge bg-primary rounded-pill px-3 py-2 mb-1">
+                                        Semana {{ semana_num }}
+                                    </span>
+                                    <small class="text-muted">
+                                        {{ semana_data.fecha_inicio|date:"d/m" }} - {{ semana_data.fecha_fin|date:"d/m" }}
+                                    </small>
+                                </div>
+                            </td>
+                            
+                            <!-- Columnas de días -->
+                            {% for dia in datos_tabla.dias %}
+                            {% with valor=semana_data.datos|dict_key:dia %}
+                            <td class="text-center align-middle {% if valor > 0 %}fw-bold{% endif %}" 
+                                style="{% if dia in 'Sábado,Domingo' %}background-color: #fff9e6;{% endif %}">
+                                {% if valor >= 0 %}
+                                <div class="d-flex flex-column">
+                                    {% if valor == 0 %}
+                                    <span class="text-danger fw-bold">${{ valor|floatformat:2|intcomma }}</span>
+                                    {% elif valor <= 10000 %}
+                                    <span class="text-secondary fw-bold">${{ valor|floatformat:2|intcomma }}</span>
+                                    {% elif valor <= 20000 %}
+                                    <span class="text-primary fw-bold">${{ valor|floatformat:2|intcomma }}</span>
+                                    {% else %}
+                                    <span class="text-warning fw-bold">${{ valor|floatformat:2|intcomma }}</span>
+                                    {% endif %}
+                                    {% comment %} <small class="text-muted">
+                                        {{ valor|floatformat:0 }} USD
+                                    </small> {% endcomment %}
+                                </div>
+                                {% else %}
+                                <span class="text-muted fst-italic">-</span>
+                                {% endif %}
+                            </td>
+                            {% endwith %}
+                            {% endfor %}
+                            
+                            <!-- Total Semanal -->
+                            <td class="text-center align-middle fw-bold" style="background-color: #e8f5e9;">
+                                <div class="d-flex flex-column">
+                                    <span class="text-success">${{ total_semana.total|floatformat:2|intcomma }}</span>
+                                    <small class="text-muted">
+                                        Promedio: ${{ total_semana.promedio|floatformat:2 }}
+                                    </small>
+                                </div>
+                            </td>
+                            
+                            
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="{{ datos_tabla.dias|length|add:3 }}" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="fas fa-database fa-3x mb-3"></i>
+                                    <h5>No hay datos registrados</h5>
+                                    <p class="mb-0">Agrega tu primer ingreso para comenzar</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        
+                        <!-- FILA DE TOTALES POR DÍA -->
+                        {% if datos_tabla.semanas %}
+                        <tr class="table-active">
+                            <td class="text-center align-middle fw-bold" style="background-color: #2c3e50; color: white;">
+                                <i class="fas fa-chart-bar me-1"></i>
+                                TOTAL DÍA
+                            </td>
+                            
+                            {% for dia in datos_tabla.dias %}
+                            {% with total_dia=datos_tabla.totales_dias|dict_key:dia %}
+                            <td class="text-center align-middle fw-bold" 
+                                style="background-color: {% if dia in 'Sábado,Domingo' %}#f39c12{% else %}#3498db{% endif %}; color: white;">
+                                <div class="d-flex flex-column">
+                                    <span>${{ total_dia.total|floatformat:2|intcomma }}</span>
+                                    <small class="opacity-75">
+                                        {{ total_dia.porcentaje }}%
+                                    </small>
+                                </div>
+                            </td>
+                            {% endwith %}
+                            {% endfor %}
+                            
+                            <!-- Total General (última celda) -->
+                            <td class="text-center align-middle fw-bold" 
+                                colspan="2" 
+                                style="background-color: #27ae60; color: white; font-size: 0.8em;">
+                                <div class="d-flex flex-column align-items-center">
+                                    <i class="fas fa-trophy mb-1"></i>
+                                    <span>TOTAL GENERAL</span>
+                                    <h4 class="mb-0 mt-1">${{ datos_tabla.total_general|floatformat:2|intcomma }}</h4>
+                                    <small class="opacity-75">
+                                        Promedio: ${{ datos_tabla.promedio_diario|floatformat:2 }}
+                                    </small>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Análisis por Día -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        ANÁLISIS POR DÍA DE LA SEMANA
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for dia in datos_tabla.dias %}
+                        {% with total_dia=datos_tabla.totales_dias.dia %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100 {% if dia in 'Sábado,Domingo' %}border-warning{% else %}border-primary{% endif %}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="card-title mb-0 {% if dia in 'Sábado,Domingo' %}text-warning{% else %}text-primary{% endif %}">
+                                            <i class="fas fa-{% if dia in 'Sábado,Domingo' %}sun{% else %}briefcase{% endif %} me-1"></i>
+                                            {{ dia|upper }}
+                                        </h6>
+                                        <span class="badge {% if dia in 'Sábado,Domingo' %}bg-warning{% else %}bg-primary{% endif %}">
+                                            {{ total_dia.porcentaje }}%
+                                        </span>
+                                    </div>
+                                    <h4 class="fw-bold">${{ total_dia.total|floatformat:2|intcomma }}</h4>
+                                    <div class="progress mb-2" style="height: 8px;">
+                                        <div class="progress-bar {% if dia in 'Sábado,Domingo' %}bg-warning{% else %}bg-primary{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ total_dia.porcentaje }}%"
+                                             aria-valuenow="{{ total_dia.porcentaje }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        {% widthratio total_dia.porcentaje 100 datos_tabla.total_general as contribucion %}
+                                        Contribución: ${{ contribucion|floatformat:2|intcomma }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% if forloop.counter|divisibleby:4 and not forloop.last %}
+                    </div>
+                    <div class="row">
+                        {% endif %}
+                        {% endwith %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Resumen Estadístico Detallado -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sort-amount-up me-2"></i>
+                        TOP 5 SEMANAS CON MAYORES INGRESOS
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for semana_num in datos_tabla.semanas|slice:":5" %}
+                        {% with total_semana=datos_tabla.totales_semanas.semana_num semana_data=datos_tabla.tabla.semana_num %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <span class="badge bg-success me-2">{{ forloop.counter }}</span>
+                                        Semana {{ semana_num }}
+                                    </h6>
+                                    <small class="text-muted">
+                                        {{ semana_data.fecha_inicio|date:"d/m/Y" }} - {{ semana_data.fecha_fin|date:"d/m/Y" }}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <h5 class="mb-0 text-success">${{ total_semana.total|floatformat:2|intcomma }}</h5>
+                                    <small class="text-muted">{{ total_semana.porcentaje }}% del total</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endwith %}
+                        {% empty %}
+                        <div class="text-center text-muted py-3">
+                            No hay semanas registradas
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-day me-2"></i>
+                        DÍAS CON MAYOR PROMEDIO
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Día</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-end">Promedio</th>
+                                    <th class="text-end">Registros</th>
+                                    <th class="text-end">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dia in datos_tabla.dias %}
+                                {% with total_dia=datos_tabla.totales_dias.dia %}
+                                {% if total_dia.total > 0 %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-{% if dia in 'Sábado,Domingo' %}sun text-warning{% else %}briefcase text-primary{% endif %} me-1"></i>
+                                        {{ dia }}
+                                    </td>
+                                    <td class="text-end fw-bold">${{ total_dia.total|floatformat:2|intcomma }}</td>
+                                    <td class="text-end">
+                                        {% with promedio=total_dia.total|divisibleby:datos_tabla.semanas|length %}
+                                        ${{ promedio|floatformat:2|intcomma }}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge bg-info">
+                                            {{ datos_tabla.semanas|length }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge {% if total_dia.porcentaje > 20 %}bg-success{% elif total_dia.porcentaje > 15 %}bg-warning{% else %}bg-secondary{% endif %}">
+                                            {{ total_dia.porcentaje }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Información Adicional -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card border-light">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-info-circle fa-2x text-info"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Cómo leer la tabla</h6>
+                                    <p class="text-muted mb-0 small">
+                                        Cada celda muestra el ingreso del día específico.
+                                        Los fines de semana tienen fondo amarillo.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-lightbulb fa-2x text-warning"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Insights</h6>
+                                    <p class="text-muted mb-0 small">
+                                        Busca patrones: ¿Qué días son más productivos?
+                                        ¿Cómo varían las semanas?
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-download fa-2x text-success"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Exportar datos</h6>
+                                    <p class="text-muted mb-0 small">
+                                        Usa el botón "Exportar a Excel" para obtener
+                                        una copia de todos los datos.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estilos adicionales -->
+<style>
+.table th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.table-responsive {
+    scrollbar-width: thin;
+    scrollbar-color: #6c757d #f8f9fa;
+}
+
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background-color: #6c757d;
+    border-radius: 4px;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.progress {
+    border-radius: 10px;
+}
+
+.list-group-item {
+    border-left: 4px solid transparent;
+    transition: all 0.3s;
+}
+
+.list-group-item:hover {
+    border-left-color: #28a745;
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}

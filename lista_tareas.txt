@@ -1,0 +1,8 @@
+Tareas pendientes del proyecto:
+- Incluir gestión de gastos
+- Incluir sección de deuda con mi mamá
+- Incluir gráficos comparativos de ingresos vs inversión inicial
+- Incluir estimación
+- Incluir cálculo de divisas
+- Mejorar la visualidad y la organización de la interfaz gráfica
+- Agregar tareas programadas, generación de informes y notificaciones push
