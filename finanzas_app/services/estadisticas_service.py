@@ -1,3 +1,6 @@
+from decimal import Decimal
+from django.conf import settings
+from django.db import models
 from finanzas_app.models.ingresos import Recaudacion
 
 
@@ -124,3 +127,55 @@ class EstadisticaService:
                 dia["promedio"] = dia["total"] / dia["count"]
 
         return dias_semana
+
+    @classmethod
+    def obtener_deuda_semanal(cls):
+        """
+        Calcula la deuda acumulada desde la semana inicial configurada
+        """
+
+        # Obtener todas las recaudaciones
+        recaudaciones = Recaudacion.objects.all()
+
+        if not recaudaciones.exists():
+            return {
+                "deuda_total_cup": Decimal("0"),
+                "deuda_total_usd": Decimal("0"),
+                "semanas_con_deuda": 0,
+                "detalle_por_semana": [],
+            }
+
+        # Encontrar la semana máxima registrada
+        max_semana = recaudaciones.aggregate(models.Max("numero_semana"))[
+            "numero_semana__max"
+        ]
+
+        if max_semana < settings.DEUDA_CONFIG["SEMANA_INICIO"]:
+            return {
+                "deuda_total_cup": Decimal("0"),
+                "deuda_total_usd": Decimal("0"),
+                "semanas_con_deuda": 0,
+                "detalle_por_semana": [],
+            }
+
+        # Calcular cuántas semanas deben
+        semanas_con_deuda = max_semana - settings.DEUDA_CONFIG["SEMANA_INICIO"] + 1
+
+        # Calcular deuda total en CUP
+        deuda_total_cup = semanas_con_deuda * settings.DEUDA_CONFIG["MONTO_SEMANAL_CUP"]
+
+        # Obtener tasa de cambio de settings
+        tasa_cambio = Decimal(str(settings.DEUDA_CONFIG["TASA_CAMBIO_CUP_A_USD"]))
+
+        # Calcular deuda en USD
+        deuda_total_usd = deuda_total_cup / tasa_cambio
+
+        return {
+            "deuda_total_cup": deuda_total_cup,
+            "deuda_total_usd": deuda_total_usd,
+            "semanas_con_deuda": semanas_con_deuda,
+            "tasa_cambio": tasa_cambio,
+            "deuda_semanal_cup": settings.DEUDA_CONFIG["MONTO_SEMANAL_CUP"],
+            "semana_inicio_deuda": settings.DEUDA_CONFIG["SEMANA_INICIO"],
+            "ultima_semana_registrada": max_semana,
+        }

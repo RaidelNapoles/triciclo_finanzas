@@ -6,3 +6,4 @@ Tareas pendientes del proyecto:
 - Incluir cálculo de divisas
 - Mejorar la visualidad y la organización de la interfaz gráfica
 - Agregar tareas programadas, generación de informes y notificaciones push
+- Refectorizar el código

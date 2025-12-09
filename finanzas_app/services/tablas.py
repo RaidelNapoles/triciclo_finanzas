@@ -72,7 +72,7 @@ class ProcesadorTablaSemanal:
             if semana not in tabla:
                 tabla[semana] = {
                     "semana_numero": semana,
-                    "datos": {dia: Decimal("0.00") for dia in dias_semana},
+                    "datos": {},
                     "fecha_inicio": ingreso.fecha,
                     "fecha_fin": ingreso.fecha,
                 }

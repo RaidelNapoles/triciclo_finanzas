@@ -43,37 +43,7 @@ def tabla_semanal(request):
         "hoy": datetime.datetime.today(),
     }
 
-    print(contexto)
-
     return render(request, "finanzas_app/tabla_semanal.html", contexto)
-
-
-def tabla_semanal_filtrada(request, semana_inicio=None, semana_fin=None):
-    """
-    Muestra tabla semanal filtrada por rango de semanas.
-
-    Args:
-        semana_inicio (int): Primera semana a mostrar
-        semana_fin (int): Última semana a mostrar
-    """
-    ingresos = Recaudacion.objetos.all()
-
-    # Aplicar filtros de semana si se proporcionan
-    if semana_inicio and semana_fin:
-        ingresos = ingresos.filter(
-            numero_semana__gte=semana_inicio, numero_semana__lte=semana_fin
-        )
-
-    datos_tabla = ProcesadorTablaSemanal.crear_tabla_semanal(ingresos)
-
-    contexto = {
-        "datos_tabla": datos_tabla,
-        "semana_inicio": semana_inicio,
-        "semana_fin": semana_fin,
-        "filtrado": True if semana_inicio and semana_fin else False,
-    }
-
-    return render(request, "ingresos/tabla_semanal_filtrada.html", contexto)
 
 
 def exportar_tabla_excel(request):
